@@ -59,12 +59,27 @@ mleadlag <- function(x, n, ts_id) {
   x[pos]
 }
 
-
+paste(list("((as.numeric(as.character(sic)) < 6000) | 
+                        (as.numeric(as.character(sic)) > 6999))",
+           "(aqs/sale < 0.05)",
+           "is.finite(cfo)",
+           "is.finite(tacc)"), collapse = "&") 
 apply_screen <- function(df, filter_list) {
   my_filter <- paste(filter_list, collapse = "&")
   filter_(df, my_filter)
 }
 
+filter_list <- list("((as.numeric(as.character(sic)) < 6000) | 
+                      (as.numeric(as.character(sic)) > 6999))",
+                    "(aqs/sale < 0.05)",
+                    "is.finite(cfo)",
+                    "is.finite(tacc)",
+                    "avg_at >= 7.5")
+#filter_() is deprecated, use filter instead;
+apply_screen_1 <- function(df, filter_list) {
+  my_filter <- paste(filter_list, collapse = "&")
+  filter(df, eval(parse(text = my_filter)))
+}
 
 calc_variables <- function(df, var_name, definition, type) {
   cs_id <- definition[type == "cs_id"]
@@ -92,6 +107,7 @@ select_variables <- function(df, var_names) {
 }
  
 
+
 winsorize <- function(df, percentile = 0.01, include=NULL, exclude=NULL, byval=NULL) {
   if (!is.null(exclude) & !is.null(include)) 
     stop("You can only set exclude or include, not both.")
@@ -109,6 +125,7 @@ winsorize <- function(df, percentile = 0.01, include=NULL, exclude=NULL, byval=N
 
 balance_sample <- function(df, cs_id, ts_id, vars = names(df), minval = min(df[, ts_id]), maxval = max(df[, ts_id])) {
   not_na <- complete.cases(select_(df, .dots = vars))
+  conds <- ensyms(...)
   df %>% filter(not_na) %>% 
     arrange_(.dots = c(cs_id, ts_id)) %>%
     group_by_(.dots = c(cs_id)) %>%
